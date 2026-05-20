@@ -98,6 +98,29 @@ class Tafsir(models.Model):
         return f'Tafsir {self.verse} [{self.language}]'
 
 
+class Bookmark(models.Model):
+    COLOR_CHOICES = [
+        ('gold', 'Gold'),
+        ('green', 'Green'),
+        ('blue', 'Blue'),
+        ('red', 'Red'),
+    ]
+
+    user = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='bookmarks')
+    verse = models.ForeignKey(Verse, on_delete=models.CASCADE, related_name='bookmarks')
+    color = models.CharField(max_length=10, choices=COLOR_CHOICES, default='gold')
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('user', 'verse')]
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['user', '-created_at'])]
+
+    def __str__(self):
+        return f'Bookmark {self.user} — {self.verse}'
+
+
 class PageMapping(models.Model):
     page_number = models.PositiveSmallIntegerField(unique=True)
     surah_start = models.ForeignKey(

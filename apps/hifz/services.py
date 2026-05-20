@@ -1,5 +1,6 @@
 from django.utils import timezone
 from django.db.models import Count, Q
+from datetime import timedelta
 from .models import HifzProgress, ErrorLog
 
 
@@ -40,6 +41,58 @@ def get_error_stats(user_id: int) -> dict:
         'total_yellow': total_yellow,
         'due_for_review': due_count,
         'most_problematic_verses': list(most_problematic),
+    }
+
+
+def get_hifz_dashboard(user_id: int) -> dict:
+    today = timezone.now().date()
+
+    status_counts = {
+        row['status']: row['count']
+        for row in HifzProgress.objects.filter(user_id=user_id)
+        .values('status').annotate(count=Count('id'))
+    }
+
+    daily_reviews = []
+    for i in range(6, -1, -1):
+        day = today - timedelta(days=i)
+        count = HifzProgress.objects.filter(
+            user_id=user_id, last_reviewed__date=day
+        ).count()
+        daily_reviews.append({'date': str(day), 'count': count, 'label': day.strftime('%a')})
+
+    top_surahs = list(
+        HifzProgress.objects.filter(user_id=user_id, status='memorized')
+        .values('verse__surah__number', 'verse__surah__name_transliteration', 'verse__surah__total_verses')
+        .annotate(memorized=Count('id'))
+        .order_by('-memorized')[:5]
+    )
+    top_surahs_out = [
+        {
+            'surah_number': s['verse__surah__number'],
+            'surah_name': s['verse__surah__name_transliteration'],
+            'total_verses': s['verse__surah__total_verses'],
+            'memorized': s['memorized'],
+            'percent': round(s['memorized'] / s['verse__surah__total_verses'] * 100, 1)
+            if s['verse__surah__total_verses'] else 0,
+        }
+        for s in top_surahs
+    ]
+
+    total = HifzProgress.objects.filter(user_id=user_id).count()
+    due_count = HifzProgress.objects.filter(user_id=user_id, next_review__lte=today).count()
+
+    return {
+        'status_counts': {
+            'memorized': status_counts.get('memorized', 0),
+            'learning': status_counts.get('learning', 0),
+            'weak': status_counts.get('weak', 0),
+            'new': status_counts.get('new', 0),
+        },
+        'total_in_progress': total,
+        'due_count': due_count,
+        'daily_reviews': daily_reviews,
+        'top_surahs': top_surahs_out,
     }
 
 

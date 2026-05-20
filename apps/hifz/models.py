@@ -88,7 +88,10 @@ class HifzProgress(models.Model):
                 self.status = 'learning'
 
         self.next_review = (timezone.now() + timezone.timedelta(days=self.interval_days)).date()
-        self.save()
+        self.save(update_fields=[
+            'status', 'ease_factor', 'interval_days', 'repetitions',
+            'next_review', 'last_reviewed', 'total_reviews',
+        ])
 
 
 class ErrorLog(models.Model):

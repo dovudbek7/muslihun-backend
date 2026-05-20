@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Surah, Verse, Translation, Tafsir, PageMapping
+from .models import Surah, Verse, Translation, Tafsir, PageMapping, Bookmark
 
 
 class TranslationSerializer(serializers.ModelSerializer):
@@ -107,3 +107,15 @@ class TafsirDetailSerializer(serializers.ModelSerializer):
             'id', 'verse_number', 'surah_number', 'surah_name',
             'text_arabic', 'language', 'source', 'content',
         ]
+
+
+class BookmarkSerializer(serializers.ModelSerializer):
+    surah_number = serializers.IntegerField(source='verse.surah.number', read_only=True)
+    verse_number = serializers.IntegerField(source='verse.number', read_only=True)
+    text_arabic = serializers.CharField(source='verse.text_arabic', read_only=True)
+    page_number = serializers.IntegerField(source='verse.page_number', read_only=True)
+
+    class Meta:
+        model = Bookmark
+        fields = ['id', 'verse', 'surah_number', 'verse_number', 'text_arabic', 'page_number', 'color', 'note', 'created_at']
+        read_only_fields = ['id', 'created_at']

@@ -9,6 +9,8 @@ from .views import (
     submit_review,
     my_errors_stats,
     surah_progress,
+    hifz_dashboard,
+    transcribe_verse,
 )
 
 urlpatterns = [
@@ -21,4 +23,6 @@ urlpatterns = [
     path('progress/surah/<int:surah_number>/', surah_progress, name='hifz-surah-progress'),
     path('errors/', ErrorLogListCreateView.as_view(), name='hifz-errors'),
     path('errors/stats/', my_errors_stats, name='hifz-error-stats'),
+    path('dashboard/', hifz_dashboard, name='hifz-dashboard'),
+    path('transcribe/', transcribe_verse, name='hifz-transcribe'),
 ]

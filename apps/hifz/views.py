@@ -13,7 +13,7 @@ from .serializers import (
     ErrorLogCreateSerializer,
     MyErrorsStatsSerializer,
 )
-from .services import get_due_verses, get_weak_verses, get_error_stats, get_surah_progress
+from .services import get_due_verses, get_weak_verses, get_error_stats, get_surah_progress, get_hifz_dashboard
 
 
 class SessionListCreateView(generics.ListCreateAPIView):
@@ -133,3 +133,64 @@ def surah_progress(request, surah_number: int):
     if not data:
         return Response({'error': 'Surah not found.'}, status=404)
     return Response(data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def hifz_dashboard(request):
+    return Response(get_hifz_dashboard(request.user.id))
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def transcribe_verse(request):
+    import os
+    try:
+        from openai import OpenAI
+    except ImportError:
+        return Response({'error': 'openai library not installed.'}, status=500)
+
+    api_key = os.environ.get('OPENAI_API_KEY')
+    if not api_key:
+        return Response({'error': 'OPENAI_API_KEY not configured.'}, status=500)
+
+    verse_id = request.data.get('verse_id')
+    audio_file = request.FILES.get('audio')
+    if not verse_id or not audio_file:
+        return Response({'error': 'verse_id and audio required.'}, status=400)
+
+    try:
+        from apps.quran.models import Verse
+        verse = Verse.objects.get(id=verse_id)
+    except Verse.DoesNotExist:
+        return Response({'error': 'Verse not found.'}, status=404)
+
+    try:
+        client = OpenAI(api_key=api_key)
+        audio_file.seek(0)
+        transcript = client.audio.transcriptions.create(
+            model='whisper-1',
+            file=(audio_file.name or 'audio.webm', audio_file.read(), audio_file.content_type or 'audio/webm'),
+            language='ar',
+        )
+        transcription = transcript.text
+    except Exception as e:
+        return Response({'error': f'Transcription failed: {str(e)}'}, status=502)
+
+    from core.utils import normalize_arabic
+    expected_words = normalize_arabic(verse.text_arabic).split()
+    got_words = set(normalize_arabic(transcription).split())
+
+    word_results = [
+        {'text': word, 'correct': word in got_words}
+        for word in expected_words
+    ]
+    correct_count = sum(1 for w in word_results if w['correct'])
+    match_percent = round(correct_count / len(expected_words) * 100, 1) if expected_words else 0
+
+    return Response({
+        'transcription': transcription,
+        'match_percent': match_percent,
+        'words': word_results,
+        'verse_text': verse.text_arabic,
+    })

@@ -8,6 +8,9 @@ from .views import (
     TafsirView,
     surah_meta,
     navigation_data,
+    BookmarkListCreateView,
+    BookmarkDestroyView,
+    toggle_bookmark,
 )
 
 urlpatterns = [
@@ -19,4 +22,7 @@ urlpatterns = [
     path('juz/<int:juz_number>/', JuzView.as_view(), name='juz-detail'),
     path('meta/surahs/', surah_meta, name='surah-meta'),
     path('navigation/', navigation_data, name='navigation-data'),
+    path('bookmarks/', BookmarkListCreateView.as_view(), name='bookmark-list'),
+    path('bookmarks/<int:pk>/', BookmarkDestroyView.as_view(), name='bookmark-delete'),
+    path('bookmarks/toggle/<int:verse_id>/', toggle_bookmark, name='bookmark-toggle'),
 ]

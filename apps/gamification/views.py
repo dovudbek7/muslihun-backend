@@ -28,6 +28,7 @@ def streak_view(request):
 class TasbihDhikrListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     serializer_class = TasbihDhikrSerializer
+    pagination_class = None
 
     def get_queryset(self):
         seed_default_dhikr()
@@ -70,6 +71,7 @@ def tasbih_increment(request, session_id: int):
 class AchievementListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     serializer_class = AchievementSerializer
+    pagination_class = None
 
     def get_queryset(self):
         seed_default_achievements()
@@ -79,6 +81,7 @@ class AchievementListView(generics.ListAPIView):
 class UserAchievementListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UserAchievementSerializer
+    pagination_class = None
 
     def get_queryset(self):
         return UserAchievement.objects.filter(

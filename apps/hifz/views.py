@@ -27,6 +27,17 @@ class SessionListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         return HifzSession.objects.filter(user=self.request.user).select_related('surah')[:50]
 
+    def perform_create(self, serializer):
+        session = serializer.save()
+        from apps.quran.models import Verse
+        from django.utils import timezone
+        verse_ids = list(Verse.objects.filter(surah=session.surah).values_list('id', flat=True))
+        today = timezone.now().date()
+        HifzProgress.objects.bulk_create(
+            [HifzProgress(user=session.user, verse_id=v_id, next_review=today) for v_id in verse_ids],
+            ignore_conflicts=True,
+        )
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
